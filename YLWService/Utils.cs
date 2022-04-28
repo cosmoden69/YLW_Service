@@ -1358,4 +1358,105 @@ namespace YLWService
             }
         }
     }
+
+    public static class Alert
+    {
+        static string mypath = Path.GetDirectoryName(new System.Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath);  // Application.StartupPath;
+
+        /// <summary>
+        /// Shows a client-side JavaScript alert in the browser.
+        /// </summary>
+        /// <param name="message">The message to appear in the alert.</param>
+        public static void Show(string message)
+        {
+            Show(message, "");
+        }
+
+        public static void Show(string message, string title)
+        {
+            WriteLog("Alert.Show", message);
+
+            // Cleans the message to allow single quotation marks
+            string cleanMessage = message.Replace("'", "\\'");
+            string script = "<script type=\"text/javascript\">alert('" + cleanMessage + "');</script>";
+
+            // Gets the executing web page
+            System.Web.UI.Page page = HttpContext.Current.CurrentHandler as System.Web.UI.Page;
+
+            // Checks if the handler is a Page and that the script isn't allready on the Page
+            if (page != null && !page.ClientScript.IsClientScriptBlockRegistered("alert"))
+            {
+                page.ClientScript.RegisterClientScriptBlock(typeof(Alert), "alert", script);
+            }
+        }
+
+        public static void WriteLog(string module, string msg)
+        {
+            try
+            {
+                // 폴더가 있는지 검사하고 없으면 만든다.
+                String dir = mypath + "/log/" + DateTime.Now.ToString("yyyy") + "/" + DateTime.Now.ToString("MM");
+                System.IO.DirectoryInfo di = new System.IO.DirectoryInfo(dir);
+                if (!di.Exists)
+                {
+                    di.Create();
+                }
+
+                // Write the string to a file.
+                string str = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " > " + module + " : " + msg;
+                System.IO.StreamWriter file = new System.IO.StreamWriter(dir + @"\MonitorLog_" + DateTime.Now.ToString("yyyyMMdd") + ".txt", true);
+                file.WriteLine(str);
+                file.Close();
+            }
+            catch
+            {
+            }
+        }
+
+        public static void WriteErr(string module, string msg)
+        {
+            try
+            {
+                // 폴더가 있는지 검사하고 없으면 만든다.
+                String dir = mypath + "/log/" + DateTime.Now.ToString("yyyy") + "/" + DateTime.Now.ToString("MM");
+                System.IO.DirectoryInfo di = new System.IO.DirectoryInfo(dir);
+                if (!di.Exists)
+                {
+                    di.Create();
+                }
+
+                // Write the string to a file.
+                string str = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " > " + module + " : " + msg;
+                System.IO.StreamWriter file = new System.IO.StreamWriter(dir + @"\MonitorErr_" + DateTime.Now.ToString("yyyyMMdd") + ".txt", true);
+                file.WriteLine(str);
+                file.Close();
+            }
+            catch
+            {
+            }
+        }
+
+        public static void WriteHist(string module, string msg)
+        {
+            try
+            {
+                // 폴더가 있는지 검사하고 없으면 만든다.
+                String dir = mypath + "/log/" + DateTime.Now.ToString("yyyy") + "/" + DateTime.Now.ToString("MM");
+                System.IO.DirectoryInfo di = new System.IO.DirectoryInfo(dir);
+                if (!di.Exists)
+                {
+                    di.Create();
+                }
+
+                // Write the string to a file.
+                string str = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " > " + module + " : " + msg;
+                System.IO.StreamWriter file = new System.IO.StreamWriter(dir + @"\MonitorHist_" + DateTime.Now.ToString("yyyyMMdd") + ".txt", true);
+                file.WriteLine(str);
+                file.Close();
+            }
+            catch
+            {
+            }
+        }
+    }
 }

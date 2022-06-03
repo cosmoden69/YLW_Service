@@ -396,6 +396,91 @@ namespace YLWService
             }
         }
 
+        public DataSet FileUpdate(ClsConnInfo conninfo, DataSet dsData)
+        {
+            try
+            {
+                if (dsData == null) return null;
+                if (dsData.Tables.Count == 0) return null;
+                if (dsData.Tables.Count == 0 || dsData.Tables.Contains("DataBlock1") == false) return null;
+
+                DataSet dsData_result = new DataSet();
+
+                DataTable dtData = dsData.Tables["DataBlock1"];
+                for (int ii = 0; ii < dtData.Rows.Count; ii++)
+                {
+                    string companySeq = dtData.Rows[ii]["CompanySeq"].ToString();
+                    string languageSeq = dtData.Rows[ii]["LanguageSeq"].ToString();
+                    string loginPgmSeq = dtData.Rows[ii]["LoginPgmSeq"].ToString();
+                    string userSeq = dtData.Rows[ii]["UserSeq"].ToString();
+                    string attachFileConstSeq = dtData.Rows[ii]["AttachFileConstSeq"].ToString();
+                    string attachFileSeq = dtData.Rows[ii]["AttachFileSeq"].ToString();
+                    string attachFileNo = dtData.Rows[ii]["AttachFileNo"].ToString();
+                    string IDX_NO = dtData.Rows[ii]["IDX_NO"].ToString();
+                    string isRepFile = dtData.Rows[ii]["IsRepFile"].ToString();
+                    string fileName = dtData.Rows[ii]["fileName"].ToString();
+                    string remark = dtData.Rows[ii]["Remark"].ToString();
+
+                    XmlDocument xml = new XmlDocument();
+
+                    XmlElement root = xml.CreateElement("AttachFileInfo");
+                    XmlElement elmt = xml.CreateElement("WorkingTag"); elmt.InnerText = "U";
+                    root.AppendChild(elmt);
+                    elmt = xml.CreateElement("AttachFileSeq"); elmt.InnerText = attachFileSeq;  //삭제시 필요
+                    root.AppendChild(elmt);
+                    elmt = xml.CreateElement("AttachFileNo"); elmt.InnerText = attachFileNo;    //삭제시 필요
+                    root.AppendChild(elmt);
+                    elmt = xml.CreateElement("IDX_NO"); elmt.InnerText = IDX_NO;                //여러개 등록시 필요
+                    root.AppendChild(elmt);
+                    elmt = xml.CreateElement("IsRepFile"); elmt.InnerText = isRepFile;
+                    root.AppendChild(elmt);
+                    elmt = xml.CreateElement("FileName"); elmt.InnerText = fileName;
+                    root.AppendChild(elmt);
+                    elmt = xml.CreateElement("Remark"); elmt.InnerText = remark;
+                    root.AppendChild(elmt);
+
+                    //로컬 개발 시 사용
+                    if (string.IsNullOrEmpty(conninfo.Dsn) || string.IsNullOrEmpty(conninfo.DsnBis))
+                    {
+                        SqlConnection conn = new SqlConnection(dsn_bis);
+                        conn.Open();
+                        string sql = "_SAdjSLFileUpdate N'" + companySeq + "', N'" + languageSeq + "', N'" + loginPgmSeq + "', N'" + userSeq + "', N'" + attachFileConstSeq + "', N'" + root.OuterXml + "'";
+                        SqlDataAdapter adapter = new SqlDataAdapter(sql, conn);
+                        adapter.Fill(dsData_result);
+                        conn.Close();
+                    }
+                    //서버에서 사용
+                    else
+                    {
+                        YLWService.YlwSecurityJson security = YLWService.YLWServiceModule.SecurityJson.Clone();  //깊은복사
+                        security.serviceId = "Metro.Package.AdjSL.BisFileUpAndDown";
+                        security.methodId = "FileUpdate";
+                        security.companySeq = conninfo.security.companySeq;
+
+                        DataSet pds = new DataSet("ROOT");
+                        DataTable dt = pds.Tables.Add("DataBlock1");
+                        dt.Columns.Add("AttachFileConstSeq");
+                        dt.Columns.Add("xmlFileInfo");
+                        dt.Rows.Add(new string[] { attachFileConstSeq, root.OuterXml });
+                        dsData_result = YLWService.YLWServiceModule.CallYlwServiceCallPost(security, pds);
+                    }
+                }
+
+                return dsData_result;
+            }
+            catch (Exception ex)
+            {
+                DataSet dsr = new DataSet();
+                DataTable dtr = dsr.Tables.Add("ErrorMessage");
+                dtr.Columns.Add("Status");
+                dtr.Columns.Add("Message");
+                DataRow dr = dtr.Rows.Add();
+                dr["Status"] = "ERR";
+                dr["Message"] = ex.Message;
+                return dsr;
+            }
+        }
+
         private string GetFileDownloadRootPath(ClsConnInfo conninfo, string path1, string file1)
         {
             try

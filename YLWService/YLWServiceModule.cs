@@ -612,6 +612,37 @@ namespace YLWService
             }
         }
 
+        public static DataSet FileUpdate(YLWService.YlwSecurityJson security, DataSet ds)
+        {
+            return AsyncHelper.RunSync(() => CallAsyncFileUpdate(security, ds));
+        }
+
+        private async static Task<DataSet> CallAsyncFileUpdate(YLWService.YlwSecurityJson security, DataSet ds)
+        {
+            try
+            {
+                DataSet dsData_result = null;
+                await Task.Run(() =>
+                {
+                    ClsConnInfo info = new ClsConnInfo(security);
+                    YlwPlugin ylw = new YlwPlugin();
+                    dsData_result = ylw.FileUpdate(info, ds);
+                });
+                return dsData_result;
+            }
+            catch (Exception ex)
+            {
+                DataSet dsr = new DataSet();
+                DataTable dtr = dsr.Tables.Add("ErrorMessage");
+                dtr.Columns.Add("Status");
+                dtr.Columns.Add("Message");
+                DataRow dr = dtr.Rows.Add();
+                dr["Status"] = "ERR";
+                dr["Message"] = ex.Message;
+                return dsr;
+            }
+        }
+
         public static DataSet YDsToDataSet(YlwDataSet dsMyData)
         {
             if (dsMyData == null)

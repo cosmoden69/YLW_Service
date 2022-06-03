@@ -636,6 +636,50 @@ namespace YLWService
             }
         }
 
+        public static DataSet CallMTRFileUpdate(YlwSecurityJson security, DataSet ds)
+        {
+            try
+            {
+                ChannelFactory<IMyContract> factory = new ChannelFactory<IMyContract>();
+
+                // Address
+                factory.Endpoint.Address = new EndpointAddress(ApiDomainPost);
+
+                // Binding : HTTP 사용
+                WebHttpBinding binding = new WebHttpBinding();
+                binding.MaxReceivedMessageSize = 2147483647;
+                binding.MaxBufferSize = 2147483647;
+                binding.MaxBufferPoolSize = 2147483647;
+                factory.Endpoint.Binding = binding;
+
+                // Contract 설정
+                factory.Endpoint.Contract.ContractType = typeof(IMyContract);
+                factory.Endpoint.Behaviors.Add(new WebHttpBehavior());
+
+                // Channel Factory 만들기
+                IMyContract channel = factory.CreateChannel();
+
+                // Server 쪽 함수 호출
+                DataSet result = channel.FileUpdate(security, ds);
+                if (result != null && result.Tables.Contains("ErrorMessage"))
+                {
+                    DataTable dtr = result.Tables["ErrorMessage"];
+                    string msg = "Error : Unknown";
+                    if (dtr.Columns.Contains("Message")) msg = dtr.Rows[0]["Message"] + "";
+                    throw new Exception(msg);
+                }
+
+                // Close Channel
+                ((ICommunicationObject)channel).Close();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
         public static ReportData CallMTRGetReportPost(string streamdata)
         {
             try
@@ -819,6 +863,10 @@ namespace YLWService
             [OperationContract]
             [WebInvoke(Method = "POST", ResponseFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Wrapped, UriTemplate = "/FileDelete")]
             string FileDelete(YlwSecurityJson security, DataSet ds);
+
+            [OperationContract]
+            [WebInvoke(Method = "POST", ResponseFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Wrapped, UriTemplate = "/FileUpdate")]
+            DataSet FileUpdate(YlwSecurityJson security, DataSet ds);
 
             [OperationContract]
             [WebInvoke(Method = "POST", ResponseFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Wrapped, UriTemplate = "/GetReportPost")]

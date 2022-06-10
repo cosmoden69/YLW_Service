@@ -370,13 +370,17 @@ namespace YLWService
                     string fileName = db1.Rows[ii]["RealFileName"].ToString();
                     string fileRealPath = GetFileDownloadRootPath(conninfo, filePath, fileName);
                     fileRealPath = Path.Combine(fileRealPath, fileName);
-                    FileStream fs = new FileStream(fileRealPath, FileMode.Open, FileAccess.Read);
-                    BinaryReader r = new BinaryReader(fs);
-                    Byte[] bytBLOBData = new Byte[fs.Length];
-                    bytBLOBData = r.ReadBytes((int)fs.Length);
-                    r.Close();
-                    fs.Close();
-                    string fileBase64 = Convert.ToBase64String(bytBLOBData);
+                    string fileBase64 = "";
+                    if (File.Exists(fileRealPath))
+                    {
+                        FileStream fs = new FileStream(fileRealPath, FileMode.Open, FileAccess.Read);
+                        BinaryReader r = new BinaryReader(fs);
+                        Byte[] bytBLOBData = new Byte[fs.Length];
+                        bytBLOBData = r.ReadBytes((int)fs.Length);
+                        r.Close();
+                        fs.Close();
+                        fileBase64 = Convert.ToBase64String(bytBLOBData);
+                    }
                     if (!db1.Columns.Contains("FileBase64")) db1.Columns.Add("FileBase64");
                     db1.Rows[ii]["FileBase64"] = fileBase64;
                 }

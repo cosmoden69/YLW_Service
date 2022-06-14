@@ -955,6 +955,7 @@ namespace YLWService
     {
         // 프로퍼티
         public string PgmName { get; set; }
+        public int AttachFileConstSeq { get; set; } = 1;
         public string AcptMgmtSeq { get; set; }
         public string ReSurvAsgnNo { get; set; }
         public string FileSeq { get; set; }

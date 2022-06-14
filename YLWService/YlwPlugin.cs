@@ -117,23 +117,7 @@ namespace YLWService
                 string attachFileSeq = dtData.Rows[0]["AttachFileSeq"].ToString();
                 string attachFileNo = dtData.Rows[0]["AttachFileNo"].ToString();
 
-                DataTable dtDel = GetAttachFileInfo(conninfo, attachFileSeq);
-                if (dtDel != null && dtDel.Rows.Count > 0)
-                {
-                    //string path1 = "~" + dtDel.Rows[0]["RealFilePath"].ToString();
-                    //string file1 = dtDel.Rows[0]["RealFileName"].ToString();
-                    //string realpath1 = HostingEnvironment.MapPath(path1);
-                    //string realfile1 = Path.Combine(realpath1, file1);
-                    string path1 = dtDel.Rows[0]["RealFilePath"].ToString();
-                    string file1 = dtDel.Rows[0]["RealFileName"].ToString();
-                    string realfile1 = GetFileDownloadRootPath(conninfo, path1, file1);
-                    realfile1 = Path.Combine(realfile1, file1);
-                    try
-                    {
-                        System.IO.File.Delete(realfile1);
-                    }
-                    catch { }
-                }
+                FileSaveDelete(conninfo, attachFileSeq, attachFileNo);
 
                 XmlDocument xml = new XmlDocument();
 
@@ -211,28 +195,9 @@ namespace YLWService
                 string fileSize = dtData.Rows[0]["FileSize"].ToString();
                 string remark = dtData.Rows[0]["Remark"].ToString();
 
-                string filePath = GetRealFilePath(conninfo, attachFileConstSeq);
-                if (filePath == "") throw new Exception("filePath not found");
-                string realFilePath = Path.Combine(filePath, DateTime.Now.ToString("yyyyMM"));
-
-                string fileBase64 = dtData.Rows[0]["fileBase64"].ToString();
-                string replaceFileName = fileName.Substring(fileName.LastIndexOf("\\") + 1, fileName.Length - fileName.LastIndexOf("\\") - 1);
-                string replaceFileBase64 = fileBase64.Replace("data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,", "");
-                string realFileName = Guid.NewGuid().ToString() + "_" + replaceFileName;
-
-                //base64 파일생성
-                string fileRealPath = GetFileDownloadRootPath(conninfo, realFilePath, realFileName);
-                if (!Directory.Exists(fileRealPath))
-                {
-                    Directory.CreateDirectory(fileRealPath);
-                }
-                fileRealPath = Path.Combine(fileRealPath, realFileName);
-
-                byte[] bytes_file = Convert.FromBase64String(replaceFileBase64);
-                FileStream orgFile = new FileStream(fileRealPath, FileMode.Create);
-                orgFile.Write(bytes_file, 0, bytes_file.Length);
-                orgFile.Close();
-                //upload directory
+                string realFilePath = "";
+                string realFileName = "";
+                FileSaveUpload(conninfo, attachFileConstSeq, dtData.Rows[0], ref realFilePath, ref realFileName);
 
                 //이전 파일이 있으면 삭제
                 if (Convert.ToInt32(attachFileSeq) != 0 && Convert.ToInt32(IDX_NO) == 0)
@@ -410,64 +375,102 @@ namespace YLWService
 
                 DataSet dsData_result = new DataSet();
 
-                DataTable dtData = dsData.Tables["DataBlock1"];
+                DataTable dtMaster = dsData.Tables["DataBlock1"];
+                string companySeq = dtMaster.Rows[0]["CompanySeq"].ToString();
+                string languageSeq = dtMaster.Rows[0]["LanguageSeq"].ToString();
+                string loginPgmSeq = dtMaster.Rows[0]["LoginPgmSeq"].ToString();
+                string userSeq = dtMaster.Rows[0]["UserSeq"].ToString();
+                string attachFileConstSeq = dtMaster.Rows[0]["AttachFileConstSeq"].ToString();
+                string attachFileSeq = dtMaster.Rows[0]["AttachFileSeq"].ToString();
+
+                XmlDocument xml = new XmlDocument();
+                XmlElement root = xml.CreateElement("ROOT");
+                XmlElement master = xml.CreateElement("_AttachFileMaster");
+                XmlElement elmt = xml.CreateElement("AttachFileConstSeq"); elmt.InnerText = attachFileConstSeq;
+                master.AppendChild(elmt);
+                elmt = xml.CreateElement("AttachFileSeq"); elmt.InnerText = attachFileSeq;
+                master.AppendChild(elmt);
+                elmt = xml.CreateElement("LoginPgmSeq"); elmt.InnerText = loginPgmSeq;
+                master.AppendChild(elmt);
+                elmt = xml.CreateElement("RootPath"); elmt.InnerText = "";
+                master.AppendChild(elmt);
+                elmt = xml.CreateElement("ServerAddr"); elmt.InnerText = "";
+                master.AppendChild(elmt);
+                elmt = xml.CreateElement("UserSeq"); elmt.InnerText = userSeq;
+                master.AppendChild(elmt);
+                elmt = xml.CreateElement("PcName"); elmt.InnerText = "";
+                master.AppendChild(elmt);
+                elmt = xml.CreateElement("ServerType"); elmt.InnerText = "0";
+                master.AppendChild(elmt);
+                elmt = xml.CreateElement("Guid"); elmt.InnerText = "";
+                master.AppendChild(elmt);
+                root.AppendChild(master);
+
+                DataTable dtData = dsData.Tables["DataBlock2"];
                 for (int ii = 0; ii < dtData.Rows.Count; ii++)
                 {
-                    string companySeq = dtData.Rows[ii]["CompanySeq"].ToString();
-                    string languageSeq = dtData.Rows[ii]["LanguageSeq"].ToString();
-                    string loginPgmSeq = dtData.Rows[ii]["LoginPgmSeq"].ToString();
-                    string userSeq = dtData.Rows[ii]["UserSeq"].ToString();
-                    string attachFileConstSeq = dtData.Rows[ii]["AttachFileConstSeq"].ToString();
-                    string attachFileSeq = dtData.Rows[ii]["AttachFileSeq"].ToString();
+                    string workingTag = dtData.Rows[ii]["WorkingTag"].ToString();
                     string attachFileNo = dtData.Rows[ii]["AttachFileNo"].ToString();
-                    string IDX_NO = dtData.Rows[ii]["IDX_NO"].ToString();
-                    string isRepFile = dtData.Rows[ii]["IsRepFile"].ToString();
-                    string fileName = dtData.Rows[ii]["fileName"].ToString();
-                    string remark = dtData.Rows[ii]["Remark"].ToString();
+                    XmlElement data = xml.CreateElement("_AttachFileData");
+                    elmt = xml.CreateElement("IDX_NO"); elmt.InnerText = dtData.Rows[ii]["IDX_NO"].ToString();               //여러개 등록시 필요
+                    data.AppendChild(elmt);
+                    elmt = xml.CreateElement("WorkingTag"); elmt.InnerText = workingTag;
+                    data.AppendChild(elmt);
+                    elmt = xml.CreateElement("AttachFileNo"); elmt.InnerText = attachFileNo;
+                    data.AppendChild(elmt);
+                    elmt = xml.CreateElement("IsRepFile"); elmt.InnerText = dtData.Rows[ii]["IsRepFile"].ToString();
+                    data.AppendChild(elmt);
+                    elmt = xml.CreateElement("FilePath"); elmt.InnerText = dtData.Rows[ii]["FilePath"].ToString();
+                    data.AppendChild(elmt);
+                    elmt = xml.CreateElement("FileName"); elmt.InnerText = dtData.Rows[ii]["fileName"].ToString();
+                    data.AppendChild(elmt);
+                    elmt = xml.CreateElement("Remark"); elmt.InnerText = dtData.Rows[ii]["Remark"].ToString();
+                    data.AppendChild(elmt);
 
-                    XmlDocument xml = new XmlDocument();
-
-                    XmlElement root = xml.CreateElement("AttachFileInfo");
-                    XmlElement elmt = xml.CreateElement("WorkingTag"); elmt.InnerText = "U";
-                    root.AppendChild(elmt);
-                    elmt = xml.CreateElement("AttachFileSeq"); elmt.InnerText = attachFileSeq;  //삭제시 필요
-                    root.AppendChild(elmt);
-                    elmt = xml.CreateElement("AttachFileNo"); elmt.InnerText = attachFileNo;    //삭제시 필요
-                    root.AppendChild(elmt);
-                    elmt = xml.CreateElement("IDX_NO"); elmt.InnerText = IDX_NO;                //여러개 등록시 필요
-                    root.AppendChild(elmt);
-                    elmt = xml.CreateElement("IsRepFile"); elmt.InnerText = isRepFile;
-                    root.AppendChild(elmt);
-                    elmt = xml.CreateElement("FileName"); elmt.InnerText = fileName;
-                    root.AppendChild(elmt);
-                    elmt = xml.CreateElement("Remark"); elmt.InnerText = remark;
-                    root.AppendChild(elmt);
-
-                    //로컬 개발 시 사용
-                    if (string.IsNullOrEmpty(conninfo.Dsn) || string.IsNullOrEmpty(conninfo.DsnBis))
+                    string realFilePath = "";
+                    string realFileName = "";
+                    if (workingTag == "A")
                     {
-                        SqlConnection conn = new SqlConnection(dsn_bis);
-                        conn.Open();
-                        string sql = "_SAdjSLFileUpdate N'" + companySeq + "', N'" + languageSeq + "', N'" + loginPgmSeq + "', N'" + userSeq + "', N'" + attachFileConstSeq + "', N'" + root.OuterXml + "'";
-                        SqlDataAdapter adapter = new SqlDataAdapter(sql, conn);
-                        adapter.Fill(dsData_result);
-                        conn.Close();
+                        FileSaveUpload(conninfo, attachFileConstSeq, dtData.Rows[ii], ref realFilePath, ref realFileName);
                     }
-                    //서버에서 사용
-                    else
+                    else if (workingTag == "D")
                     {
-                        YLWService.YlwSecurityJson security = YLWService.YLWServiceModule.SecurityJson.Clone();  //깊은복사
-                        security.serviceId = "Metro.Package.AdjSL.BisFileUpAndDown";
-                        security.methodId = "FileUpdate";
-                        security.companySeq = conninfo.security.companySeq;
-
-                        DataSet pds = new DataSet("ROOT");
-                        DataTable dt = pds.Tables.Add("DataBlock1");
-                        dt.Columns.Add("AttachFileConstSeq");
-                        dt.Columns.Add("xmlFileInfo");
-                        dt.Rows.Add(new string[] { attachFileConstSeq, root.OuterXml });
-                        dsData_result = YLWService.YLWServiceModule.CallYlwServiceCallPost(security, pds);
+                        FileSaveDelete(conninfo, attachFileSeq, attachFileNo);
                     }
+                    elmt = xml.CreateElement("RealFileName"); elmt.InnerText = realFileName;
+                    data.AppendChild(elmt);
+                    elmt = xml.CreateElement("RealFilePath"); elmt.InnerText = realFilePath;
+                    data.AppendChild(elmt);
+                    elmt = xml.CreateElement("FileExt"); elmt.InnerText = dtData.Rows[ii]["FileExt"].ToString();
+                    data.AppendChild(elmt);
+                    elmt = xml.CreateElement("FileSize"); elmt.InnerText = dtData.Rows[ii]["FileSize"].ToString();
+                    data.AppendChild(elmt);
+                    root.AppendChild(data);
+                }
+                //로컬 개발 시 사용
+                if (string.IsNullOrEmpty(conninfo.Dsn) || string.IsNullOrEmpty(conninfo.DsnBis))
+                {
+                    SqlConnection conn = new SqlConnection(dsn_bis);
+                    conn.Open();
+                    string sql = "_SAdjSLFileUpdate N'" + companySeq + "', N'" + languageSeq + "', N'" + loginPgmSeq + "', N'" + userSeq + "', N'" + attachFileConstSeq + "', N'" + root.OuterXml + "'";
+                    SqlDataAdapter adapter = new SqlDataAdapter(sql, conn);
+                    adapter.Fill(dsData_result);
+                    conn.Close();
+                }
+                //서버에서 사용
+                else
+                {
+                    YLWService.YlwSecurityJson security = YLWService.YLWServiceModule.SecurityJson.Clone();  //깊은복사
+                    security.serviceId = "Metro.Package.AdjSL.BisFileUpAndDown";
+                    security.methodId = "FileUpdate";
+                    security.companySeq = conninfo.security.companySeq;
+
+                    DataSet pds = new DataSet("ROOT");
+                    DataTable dt = pds.Tables.Add("DataBlock1");
+                    dt.Columns.Add("AttachFileConstSeq");
+                    dt.Columns.Add("xmlFileInfo");
+                    dt.Rows.Add(new string[] { attachFileConstSeq, root.OuterXml });
+                    dsData_result = YLWService.YLWServiceModule.CallYlwServiceCallPost(security, pds);
                 }
 
                 return dsData_result;
@@ -482,6 +485,68 @@ namespace YLWService
                 dr["Status"] = "ERR";
                 dr["Message"] = ex.Message;
                 return dsr;
+            }
+        }
+
+        private void FileSaveUpload(ClsConnInfo conninfo, string attachFileConstSeq, DataRow drow, ref string realFilePath, ref string realFileName)
+        {
+            try
+            {
+                string filePath = GetRealFilePath(conninfo, attachFileConstSeq);
+                if (filePath == "") throw new Exception("filePath not found");
+                realFilePath = Path.Combine(filePath, DateTime.Now.ToString("yyyyMM"));
+
+                string fileBase64 = drow["fileBase64"].ToString();
+                string fileName = drow["fileName"].ToString();
+                string replaceFileName = fileName.Substring(fileName.LastIndexOf("\\") + 1, fileName.Length - fileName.LastIndexOf("\\") - 1);
+                string replaceFileBase64 = fileBase64.Replace("data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,", "");
+                realFileName = Guid.NewGuid().ToString() + "_" + replaceFileName;
+
+                //base64 파일생성
+                string fileRealPath = GetFileDownloadRootPath(conninfo, realFilePath, realFileName);
+                if (!Directory.Exists(fileRealPath))
+                {
+                    Directory.CreateDirectory(fileRealPath);
+                }
+                fileRealPath = Path.Combine(fileRealPath, realFileName);
+
+                byte[] bytes_file = Convert.FromBase64String(replaceFileBase64);
+                FileStream orgFile = new FileStream(fileRealPath, FileMode.Create);
+                orgFile.Write(bytes_file, 0, bytes_file.Length);
+                orgFile.Close();
+                //upload directory
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        private void FileSaveDelete(ClsConnInfo conninfo, string attachFileSeq, string attachFileNo)
+        {
+            try
+            {
+                DataTable dtDel = GetAttachFileInfo(conninfo, attachFileSeq);
+                if (dtDel != null && dtDel.Rows.Count > 0)
+                {
+                    string fileno1 = dtDel.Rows[0]["AttachFileNo"].ToString();
+                    if (fileno1 == attachFileNo)
+                    {
+                        string path1 = dtDel.Rows[0]["RealFilePath"].ToString();
+                        string file1 = dtDel.Rows[0]["RealFileName"].ToString();
+                        string realfile1 = GetFileDownloadRootPath(conninfo, path1, file1);
+                        realfile1 = Path.Combine(realfile1, file1);
+                        try
+                        {
+                            System.IO.File.Delete(realfile1);
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
 

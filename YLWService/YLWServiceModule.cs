@@ -944,7 +944,7 @@ namespace YLWService
         public string ReportName { get; set; }
         public string AcptMgmtSeq { get; set; }
         public string ReSurvAsgnNo { get; set; }
-        public string ParamStr { get; set; }
+        public JObject ParamStr { get; set; }
         public string ReportType { get; set; }
         public string BizNo { get; set; }
         public int Seq { get; set; }
